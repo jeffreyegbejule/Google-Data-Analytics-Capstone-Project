@@ -1,0 +1,564 @@
+---
+title: "Cyclistic Bike Share Data Analysis"
+author: "Aninon Jeffrey Egbejule"
+date: "6/20/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Google Data Analytics Certificate Capstone Project
+
+## Introduction:
+Hello, my name is Aninon J. Egbejule, and welcome to my capstone project for the Google Data Analytics Certification. In this project I am working for Cyclistic, a fictional bike share company in Chicago. Until now, Cyclistic’s marketing strategy relied on building general awareness and appealing to broad consumer segments. One approach responsible for Cyclistic’s success, was the flexibility of its pricing plans: single-ride passes, full-day passes, and annual memberships. Customers who purchase single-ride or full-day passes are referred to as casual riders. Customers who purchase annual memberships are Cyclistic members.  
+
+Cyclistic’s finance analysts have concluded that annual members are much more profitable than casual riders. Although the pricing flexibility helps Cyclistic attract more customers, the director of marketing believes that maximizing the number of annual members will be key to future growth. Rather than creating a marketing campaign that targets all-new customers, she believes there is a very good chance to convert casual riders into members. She notes that casual riders are already aware of the Cyclistic program and have chosen Cyclistic for their mobility needs
+
+## Goal:
+Design marketing strategies aimed at converting casual riders into annual members. In order to do that, however, the marketing analyst team needs to better understand how annual members and casual riders differ, why casual riders would buy a membership, and how digital media could affect their marketing tactics.
+
+Three questions will guide the future marketing program:
+
+1. How do annual members and casual riders use Cyclistic bikes differently?
+
+2. Why would casual riders buy Cyclistic annual memberships?
+
+3. How can Cyclistic use digital media to influence casual riders to become members?
+
+The director of marketing has assigned me the first question to answer: How do annual members and casual riders use Cyclistic bikes differently?
+
+## The business task:
+Analyze cyclistic’s 2022 historical annual ride share dataset and identify key trends and differences between its annual members and casual riders.
+
+## Data used:
+The data used for this analysis can be found [here](https://divvy-tripdata.s3.amazonaws.com/index.html). For this project I used use the 12 months datasets of Cyclistic trip data for 2022. The data has been made available by Motivate International Inc. under this [license](https://ride.divvybikes.com/data-license-agreement).
+
+Each file contains the following thirteen columns of data about all rides that took place during the months of January 2022 to December 2022 
+
+1. ride_id: Primary key, identifies each individual ride.
+
+2. rideable_type: Type of bike rode.
+
+3. started_at: Date and time ride begins.
+
+4. ended_at: Date and time ride ends.
+
+5. start_station_name: Name of station where ride begins.
+
+6. start_station_id: Unique id of station where ride begins.
+
+7. end_station_name: Name of station where ride ends.
+
+8. end_station_id: Unique id of station where ride ends.
+
+9. start_lat: Latitude of ride start.
+
+10. start_lng: Longitude of ride start.
+
+11. end_lat: Latitude of ride end.
+
+12. end_lng: Longitude of ride end.
+
+13. member_casual: Rider type, ‘member’ or ‘casual’.
+
+## Data Preparation
+### Setting up my environment
+```{r Loading libraries into workspace, message=FALSE, warning=FALSE, results='hide'}
+# Load libraries in R workspace
+library(tidyverse)
+library(tidyr)
+library(purrr)
+library(dplyr)
+library(lubridate)
+library(readr)
+library(janitor)
+library(scales)
+library(leaflet)
+library(shiny)
+library(htmlwidgets)
+
+
+```
+
+
+#### Imported all 12 datasets, one for each month of the year 2022
+```{r Importing dataset, message=FALSE, warning=FALSE}
+# Import all 12 datasets, one for each month of the year
+cyclistic_01_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202201-divvy-tripdata.csv")
+cyclistic_02_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202202-divvy-tripdata.csv")
+cyclistic_03_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202203-divvy-tripdata.csv")
+cyclistic_04_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202204-divvy-tripdata.csv")
+cyclistic_05_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202205-divvy-tripdata.csv")
+cyclistic_06_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202206-divvy-tripdata.csv")
+cyclistic_07_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202207-divvy-tripdata.csv")
+cyclistic_08_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202208-divvy-tripdata.csv")
+cyclistic_09_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202209-divvy-tripdata.csv")
+cyclistic_10_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202210-divvy-tripdata.csv")
+cyclistic_11_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202211-divvy-tripdata.csv")
+cyclistic_12_2022 <- read_csv("~/Documents/R/2022 Cyclistic Data Set/2022 Cyclistic CSV Files/202212-divvy-tripdata.csv")
+
+```
+
+
+#### Combined all 12 datasets to form 1 annual dataset
+```{r}
+# Merged all 12 datasets to form 1 annual dataset
+cyclistic_2022_merged <- do.call("rbind", list(cyclistic_01_2022, cyclistic_02_2022, cyclistic_03_2022, cyclistic_04_2022, cyclistic_05_2022, cyclistic_06_2022, cyclistic_07_2022, cyclistic_08_2022, cyclistic_09_2022, cyclistic_10_2022, cyclistic_11_2022, cyclistic_12_2022))
+
+head(cyclistic_2022_merged)
+```
+
+
+#### Inspected the new data frame for missing values
+```{r}
+# Check for missing values
+missing_values <- colSums(is.na(cyclistic_2022_merged))
+
+# Print the columns with missing values
+print(missing_values[missing_values > 0])
+```
+
+
+## Data Cleaning:
+For data cleaning and analysis R and RStudio were used.
+
+The following steps were taken during data cleaning:
+
+* Checked all data for duplicate rows. (None found)
+
+* Checked for and removed NULL’s or NA values
+
+* Made sure all latitudes and longitudes contained at least 2 digits
+
+* Made sure all rows in the member_casual column contained the word ‘member’ or ‘casual’
+
+* Made sure all rows in the rideable_type column contained 1 of the 3 types of bikes
+
+* Checked for and removed any rows that have an end time that is before the start time
+
+* Created new data frame of cleaned data and added columns for:
+
+   + start_day_of_week: Day of the week ride begins.
+
+   + end_day_of_week: Day of the week ride ends.
+
+   + ride_length: Duration of the ride in seconds.
+   
+   + ride_length_minutes : Duration of the ride in minutes
+   
+   + start_time: Time ride started in hms format
+   
+   + month: Month of the ride
+   
+```{r}
+# Cleaned the dataset using a pipe operation 
+cyclistic_2022_cleaned <- cyclistic_2022_merged %>%
+  distinct() %>%
+  na.omit() %>%
+  filter(floor(log10(abs(start_lat))) + 1 >= 2 &
+    floor(log10(abs(start_lng))) + 1 >= 2 &
+    floor(log10(abs(end_lat))) + 1 >= 2 &
+    floor(log10(abs(end_lng))) + 1 >= 2) %>%
+  filter(member_casual == "member" | member_casual == "casual") %>%
+  filter(rideable_type == "classic_bike" | rideable_type == "electric_bike" |
+    rideable_type == "docked_bike") %>%
+  filter(ended_at > started_at) %>%
+  mutate(
+    start_day_of_the_week = weekdays(started_at),
+    end_day_of_the_week = weekdays(ended_at),
+    ride_length = difftime(ended_at, started_at),
+    month = month(started_at, label = TRUE)
+  ) %>%
+  mutate(ride_length_mins = round(difftime(ended_at, started_at,
+    units = "min" 
+  ), digits = 2)) %>%
+  mutate(start_time = format(started_at, format = "%H:%M:%S")) %>%
+  mutate(hour_time = format(started_at, format = "%H"))
+
+head(cyclistic_2022_cleaned)
+```
+
+
+#### Checked the proportion of the cleaned dataset relative to the original dataset
+```{r}
+# Proportion of rides in cleaned data set verus original dataset
+nrow(cyclistic_2022_cleaned)/nrow(cyclistic_2022_merged)*100
+```
+
+
+#### Inspected the new table that has been created for accuracy and completeness 
+```{r}
+#List of column names
+colnames(cyclistic_2022_cleaned) 
+
+#How many rows are in data frame?
+nrow(cyclistic_2022_cleaned) 
+
+#Dimensions of the data frame?
+dim(cyclistic_2022_cleaned) 
+
+#See the first 6 rows of data frame.  Also tail(all_trips)
+head(cyclistic_2022_cleaned)
+
+#See list of columns and data types (numeric, character, etc)
+str(cyclistic_2022_cleaned)  
+
+#Statistical summary of data. Mainly for numerics
+summary(cyclistic_2022_cleaned)  
+```
+
+Note; Upon cleaning the dataset and eliminating null values, 77.1 % of the original dataset was retained, which is a good sample size, and won't disproportionately skew our analysis in favor of either the annual members or casual riders. I can therefore proceed with the analysis knowing the data is credible, complete, accurate, and collected from trustworthy sources.
+
+
+# Data Analysis & Visualization: 
+I conducted Descriptive analysis, as well as created data visualizations using the clean dataset to discover insights, trends, and differences between cyclistic's annual members and casual riders.
+
+#### Counted the number of rides completed by each group of riders(casual riders vs annual members)
+```{r}
+# Counted the number of riders by annual members vs casual riders
+ride_count_per_group <- table(cyclistic_2022_cleaned$member_casual)
+ride_count_per_group
+```
+
+#### Calculated the percentage of rides completed by each group relative to the total number of rides
+```{r}
+# Calculated percentage of rides completed by casual riders and annual members
+cyclistic_2022_cleaned %>%
+  group_by(member_casual) %>%
+  summarise(Percentage = (n() / nrow(.))*100)
+```
+
+
+#### Created a data visualization to show this information in bar chart
+```{r}
+# Plot of ride percentage of casual vs members
+cyclistic_2022_cleaned %>%
+  ggplot(aes(x = member_casual, fill = member_casual)) +
+  geom_bar(width = 0.6) +
+  geom_text(
+    stat = "count", aes(label = sprintf("%1.1f%%", after_stat(round(count / sum(count) * 100, digits = 1)))),
+    position = position_dodge(width = 1.0),
+    vjust = -0.2, size = 4.5
+  ) +
+  scale_y_continuous(labels = comma, limits = c(0, 3000000)) +
+  labs(
+    title = "Cyclistic Total Rides: Annual Members vs Casual Riders",
+    x = "Rider group", y = "Ride Total", fill = "Rider group",
+    caption = "Data from January 2022 to December 2022"
+  )
+```
+
+The calculations and bar chart reveal that over the course of January 2022 to December 2022, there were a total of 4,369,044 rides with 59.8% of the rides completed by members and 40.2% completed by casuals. This shows that there's a 20% difference in the total rides completed by cyclistic's annual members versus  its casual riders.
+Furthermore, I conducted analysis to calculate the average ride length, maximum ride length, minimum ride length, median ride length, as well as the most frequent day of the week for each group of riders.
+
+What do the average, maximum, minimum, median ride lengths say about cyclistic's rider groups? 
+
+```{r}
+# Calculated the average ride length, max ride length, median ride length, and minimum ride length for each groups of riders
+cyclistic_2022_cleaned %>%
+  group_by(member_casual) %>%
+  summarise(mean_ride_length = mean(ride_length_mins), median_ride_length = median(ride_length_mins), max_ride_length = max(ride_length_mins), min_ride_length = min(ride_length_mins))
+
+# Calculated the average ride time by each day for members vs casual users
+aggregate(cyclistic_2022_cleaned$ride_length ~ cyclistic_2022_cleaned$member_casual + cyclistic_2022_cleaned$start_day_of_the_week, FUN = mean)
+
+
+# Ordered the days of the week  
+cyclistic_2022_cleaned$start_day_of_the_week <- factor(cyclistic_2022_cleaned$start_day_of_the_week, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+# Compare members and casual users
+aggregate(cyclistic_2022_cleaned$ride_length ~ cyclistic_2022_cleaned$member_casual, FUN = mean)
+aggregate(cyclistic_2022_cleaned$ride_length ~ cyclistic_2022_cleaned$member_casual, FUN = median)
+aggregate(cyclistic_2022_cleaned$ride_length ~ cyclistic_2022_cleaned$member_casual, FUN = max)
+aggregate(cyclistic_2022_cleaned$ride_length ~ cyclistic_2022_cleaned$member_casual, FUN = min)
+
+
+```
+
+
+#### Created a bar chart showing the average length ride per day of the week for each rider group
+```{r message=FALSE, warning=FALSE}
+# Plot of average ride duration by weekday for both rider groups
+cyclistic_2022_cleaned %>%
+  group_by(member_casual, start_day_of_the_week) %>%
+  summarise(
+    number_of_rides = n(),
+    average_length = round(mean(ride_length_mins))
+  ) %>%
+  arrange(member_casual, start_day_of_the_week) %>%
+  ggplot(aes(x = start_day_of_the_week, y = average_length, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(
+    aes(label = paste(average_length, "mins")),
+    position = position_dodge(width = 1.0),
+    vjust = -0.2, size = 4.5
+  ) +
+  labs(
+    title = "Average Ride Length by Weekday: Annual Members vs Casual Riders",
+    x = "Start day of the week", y = "Average Length (minutes)", fill = "Rider group",
+    caption = "Data from January 2022 to December 2022"
+  )
+```
+
+Although majority of rides were completed by annual members over the course of the year, members ride an average of 12 minutes and casuals ride an average of 24 minutes. The maximum ride length was 34354.07 minutes for casual riders, and 1493.23 minutes for annual members. The median ride length was 13.85 minutes for casual riders, and 8.98 minutes for annual members. The minimum ride length was 1.2 minutes for both ride groups.
+Furthermore, both casual riders and annual members have the longest average rides on Saturday and Sunday and the shortest average rides on Tuesday and Wednesday..
+
+In addition, what trends do the most popular days of the week show?
+
+#### Calculated the most popular ride days for each group of riders
+```{r}
+# Created two filtered datasets including only one group of riders
+cyclistic_2022_member <- filter(cyclistic_2022_cleaned, member_casual == "member")
+cyclistic_2022_casual <- filter(cyclistic_2022_cleaned, member_casual == "casual")
+
+# Created a function to calculate mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# Calculated mode for start days for both rider groups
+getmode(cyclistic_2022_member$start_day_of_the_week)
+getmode(cyclistic_2022_casual$start_day_of_the_week)
+```
+
+#### Created a bar chart showing the percentage of total rides per day of the week for each rider group
+```{r message=FALSE, warning=FALSE}
+# Plot of ride percentage by weekdays
+cyclistic_2022_cleaned %>%
+  ggplot(aes(x = start_day_of_the_week, fill = member_casual)) +
+  geom_bar(width = 0.6, position = "dodge") +
+  geom_text(
+    aes(label = scales::percent(signif(after_stat(count) / tapply(after_stat(count), ..x.., sum)[..x..], digits = 3))),
+    position = position_dodge(width = 1.0),
+    vjust = -0.2, hjust = 0.3, size = 4.5,
+    stat = "count"
+  ) +
+  scale_y_continuous(labels = comma, limits = c(0, 500000)) +
+  labs(
+    title = "Percentage of Cyclistic Total Rides by Weekday: Annual Members vs Casual Riders",
+    x = "Start day of the week", y = "Ride Total", fill = "Rider group",
+    caption = "Data from January 2022 to December 2022"
+  )
+
+```
+
+The calculations and bar chart reveal that the total rides for casual riders are higher during the weekends and exceed those of annual members while the total rides for annual members are higher during the week and exceed those of casual riders during these respective time frames. Thursday is the most popular day for annual members while Saturday is the most popular day for casual riders. Sunday is the least popular day for annual members while Tuesday is the least popular day for casual riders. 
+
+I analyzed the hourly data of the dataset to dig deeper and discover more insight about each rider group.
+
+#### Counted the total number of riders per hour start time of the day
+```{r}
+# Count the number of rides per hour of the day
+hourly_rides <- cyclistic_2022_cleaned %>%
+  group_by(member_casual, hour_time) %>%
+  summarise(number_of_rides = n()) %>% 
+  arrange(hour_time)
+
+hourly_rides
+```
+
+#### Created a bar chart to show the hourly start time ride data between both rider groups
+```{r}
+# Plot of total rides by start hour 
+cyclistic_2022_cleaned %>%
+  ggplot(aes(x = hour_time, fill = member_casual)) +
+  geom_bar(width = 0.6, position = "dodge") +
+  scale_y_continuous(labels = comma, limits = c(0, 300000)) +
+  labs(
+    title = "Cyclistic Total Rides by Hour of the Day: Annual Members vs Casual Riders",
+    x = "Hour of The Day", y = "Ride Total", fill = "Rider group",
+    caption = "Data from January 2022 to December 2022"
+  )
+
+```
+
+As shown by the chart, the total number of rides for annual members peaked at 8 a.m. and 5 p.m., while, the total number of rides for casual riders peaked at 5 p.m.
+These findings indicate that based on the trends discovered across the hourly start times and days of the week, annual members are using Cyclistic's ride share to commute to and from work/school, while casual riders are using Cyclistic's ride share for leisure purposes.
+
+I decided to explore how the total number of rides change from to month over the course of the year.
+
+#### Counted the total number of rides per month of the year for each rider group
+```{r}
+# Counted the number of rides per month 
+monthly_rides <- cyclistic_2022_cleaned %>% 
+  group_by(member_casual, month) %>%  
+  summarise(number_of_rides = n()) %>% 
+  arrange(month) 
+monthly_rides
+```
+
+```{r}
+# Plot of total rides by month
+monthly_rides %>%
+  ggplot(aes(fill = member_casual, y = number_of_rides, x = month)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(
+    title = "Cyclistic Total Rides Per Month: Annual Members vs Casual Riders",
+    x = "Month", y = "Ride Total", fill = "Rider group",
+    caption = "Data from January 2022 to December 2022"
+  ) +
+  scale_y_continuous(labels = comma, limits = c(0, 400000))
+```
+
+The chart shows a bell curve with total number of rides for both casual riders and members peaking during summer months, this could be attributed to the annual climate in Chicago.
+
+In addition, I decided investigate the choice differences in the rideable type of each group of riders by calculating the total number of rides per rideable type for each group of riders and visualizing this data in a bar chart.
+
+#### Counted the totalnumber of rides per rideable type for each group of riders
+```{r}
+# Count number of rides per rideable type
+rideable_type_rides <- cyclistic_2022_cleaned %>%
+  group_by(member_casual, rideable_type) %>%
+  summarise(number_of_rides = n()) %>% 
+  arrange(rideable_type)
+rideable_type_rides
+```
+
+```{r}
+# Plot of total rides by rideable type
+rideable_type_rides %>% 
+  ggplot(aes(fill=member_casual, y=number_of_rides, x=rideable_type)) + 
+  geom_bar(position="dodge", stat="identity") +
+  labs(title = "Cyclistic Total Rides Per Rideable Type: Annual Members vs Casual Riders",
+       x = "Rideable Type", y = "Ride Total", fill = "Rider group",
+       caption = "Data from January 2022 to December 2022"
+  ) +
+  scale_y_continuous(labels = comma, limits = c(0, 2000000))
+```
+
+The chart reveals that: classic bikes are most the most popular rideable used by both annual members, electric bikes are the second most popular rideable type used by both groups, and docked bikes are used exclusively by casual riders.
+
+Lastly, I analyzed the most used start stations by each group of riders to discover what insight they reveal.
+
+#### Counted the most popular start stations for each group of riders
+```{r}
+# Popular station for casual customers
+start_station_casual <- cyclistic_2022_casual %>% 
+  group_by(start_station_name) %>% 
+  summarise(number_of_rides = n()) %>% 
+  arrange(desc(number_of_rides))
+
+head(start_station_casual, n=10)
+
+# Popular station for casual customers
+start_station_member <- cyclistic_2022_member %>% 
+  group_by(start_station_name) %>% 
+  summarise(number_of_rides = n()) %>% 
+  arrange(desc(number_of_rides))
+
+head(start_station_member, n=10)
+
+# Number of rides per station for both customer type
+start_station_all <- cyclistic_2022_cleaned %>% 
+  group_by(start_station_name, member_casual) %>% 
+  summarise(number_of_rides = n()) %>% 
+  arrange(desc(number_of_rides)) 
+```
+
+#### Consolidated the start stations into a data frame with unique geographical coordinates for each stations
+```{r}
+# Created a data frame containing every stations id, name, and unique coordinates.
+unique_station_coord <- cyclistic_2022_cleaned %>%
+  select(start_station_name, start_lat, start_lng) %>%
+  distinct(start_station_name, .keep_all = TRUE)
+
+# Merge data
+unique_station_coord <- start_station_all %>%
+  left_join(unique_station_coord, by = "start_station_name")
+
+head(unique_station_coord)
+```
+
+#### Created a leaflet map object to visualize the total number number of rides per start station for each group of riders
+## Map Showing Total Rides Per Start Station 
+```{r}
+# Map of total number of rides per start station 
+map <- leaflet() %>%
+  addTiles()
+
+map <- map %>%
+  addCircleMarkers(
+    data = subset(unique_station_coord[1:100,], member_casual == "casual"),
+    lat = ~start_lat,
+    lng = ~start_lng,
+    label = ~paste(start_station_name, "Rides:", number_of_rides),
+    color = "red",
+    radius = 5,
+    group = "Casual"
+  ) %>%
+  addCircleMarkers(
+    data = subset(unique_station_coord[1:100,], member_casual == "member"),
+    lat = ~start_lat,
+    lng = ~start_lng,
+    label = ~paste(start_station_name, "Rides:", number_of_rides),
+    color = "blue",
+    radius = 5,
+    group = "Member"
+  )
+
+map <- map %>%
+  addLayersControl(
+    overlayGroups = c("Casual", "Member"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+map
+```
+
+The map reveals that although the distribution of stations used by both groups show some overlap, the stations used mostly by annual members tend to be located towards the inner city while the stations used mostly by casual riders lie in closer proximity to the outskirts of the city. This supports our findings of annual members predominantly using cyclistic's ride share for work/school weekly commutes and casual riders using cyclistic's ride share for leisure commutes.
+
+I exported my cleaned dataset as a csv file and uploaded it to my tableau workspace for further alternative visualizations. I created the following interactive dashboard showing the total rides at their respective times per day of the week for each group of riders, as well as a column chart ranking the most used stations by each group of riders.
+```{r}
+write.csv(cyclistic_2022_cleaned, "cyclistic_2022_cleaned.csv")
+```
+
+
+<div class='tableauPlaceholder' id='viz1687476886832' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Ride Share Analysis - Year 2022 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticBikeShareAnalysis_16873122006910&#47;Dashboard2&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticBikeShareAnalysis_16873122006910&#47;Dashboard2' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticBikeShareAnalysis_16873122006910&#47;Dashboard2&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>  
+
+
+```{js, dashboard_embedcode, echo=FALSE}
+
+  
+var divElement = document.getElementById('viz1687476886832');                    
+var vizElement = divElement.getElementsByTagName('object')[0];                    
+if ( divElement.offsetWidth > 800 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='1000px';vizElement.style.height='827px';} else { vizElement.style.width='100%';vizElement.style.height='1327px';}                     
+var scriptElement = document.createElement('script');                    
+scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);  
+
+
+```
+
+
+## Key findings:
+* Between the months of January 2022 and December 2022, there were a total of 4,369,044 rides with 59.8% of the rides completed by members and 40.2% completed by casuals. The total number of rides by both groups peaked during summer months.
+
+* Although majority of rides were completed by members over the course of the year, members ride an average of 12 minutes and casuals ride an average of 24 minutes.
+
+* Members ride mostly on weekdays and casuals ride mostly on weekends.
+
+* On weekdays, 8 a.m. and 5 p.m. are key start times for members, while 5 p.m is a key start time for casual riders
+
+* On weekends, casual ride numbers peak around 2 p.m and 4 p.m., while member ride numbers peak around 12 p.m. and 4.p.m with significantly less rides than casuals.
+
+* The top three stations used by annual ride members include: Kingsbury St & Kinzie St, Clark St & Elm St, and Wells St & Concord Ln, while the top three stations used by casual riders include: Streeter Dr & Grand Ave, DuSable Lake Shore Dr & Monroe Dt, and Millennium Park.
+
+* Classic bikes are the most used bike type followed by electric bikes, while docked bikes are used exclusively by casual riders.
+
+
+## Recommendations:
+In conclusion, based on the findings from this analysis, members are using Cyclistic to commute to and from work/school, while casuals are using Cyclistic for leisure purposes.
+
+I would suggest:
+1. Designing marketing campaigns aimed at providing benefits and incentives which encourage casual riders to use Cyclistic to commute to and from work or school (e.g. Member Exclusive discounts)
+
+2. Partnering up with work organizations and/or schools to offer member exclusive discounts or perks.
+
+3. Target the most used stations by casual riders when advertising - Streeter Dr & Grand Ave, DuSable Lake Shore Dr & Monroe Dt, and Millennium Park.
+
+4. Run ad campaigns  during times when most casual members aren’t using Cyclistic Ride share – 8 a.m. to 10 a.m.
+
+5. Create a reward system where members can accrue points for completing more rides and redeem such points for rewards or prizes.
+
